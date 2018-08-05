@@ -35,10 +35,10 @@ void read_remotes() {
         if(received_id == known_remote[i]){
           myPrintf("Received cmd %lu from %lu\n",received_cmd, received_id); 
           switch (received_cmd) {
-            case REMOTE_BUTTON_ARM:alarm_push_event(EVT_ARM);break;
-            case REMOTE_BUTTON_DISARM:alarm_push_event(EVT_DISARM);break;
-            case REMOTE_BUTTON_SOS:alarm_push_event(EVT_SOS);break;
-            case REMOTE_BUTTON_HOME:alarm_push_event(EVT_HOME);break;
+            case REMOTE_BUTTON_ARM:push_event(EVT_ARM);break;
+            case REMOTE_BUTTON_DISARM:push_event(EVT_DISARM);break;
+            case REMOTE_BUTTON_SOS:push_event(EVT_SOS);break;
+            case REMOTE_BUTTON_HOME:push_event(EVT_HOME);break;
           }
         }
       }
