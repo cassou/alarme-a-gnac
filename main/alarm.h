@@ -13,10 +13,18 @@ enum alarm_event {
 };
 
 enum alarm_state {
-	ALARM_DISARMED,
-	ALARM_ARMED,
-	ALARM_RUNNING,
+  ALARM_DISARMED,
+  ALARM_ARMED,
+  ALARM_RUNNING,
 };
 
-#endif
+enum gsm_event {
+  GSM_EVT_NONE = 0,
+  GSM_EVT_SUCCESS,
+  GSM_EVT_FAILURE,
+  GSM_EVT_TIMEOUT,
+};
 
+#define info(x) Serial.print(F(x))
+
+#endif

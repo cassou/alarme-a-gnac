@@ -13,8 +13,8 @@ LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
 struct screen_t;
 
 struct event_t{
-  int event_id;
-  screen_t * (*on_event)();
+  enum alarm_event event_id;
+  struct screen_t * (*on_event)();
 };
 
 struct screen_t{
@@ -70,7 +70,7 @@ const struct screen_t scr_settings = {
   scr_settings_evt,
 };
 
-static const screen_t * current_screen = &scr_idle;
+static struct screen_t * current_screen = &scr_idle;
 
 void ui_setup()
 {

@@ -8,3 +8,13 @@ void myPrintf(const char *fmt, ... ){
         Serial.print(tmp);
 }
 
+void print_without_line_ending(const char * txt)
+{
+  int i = 0;
+  while(txt[i]!=0){
+    if(txt[i]!='\n' && txt[i]!='\r'){
+      Serial.write(txt[i]);
+    }
+    i++;
+  }
+}
