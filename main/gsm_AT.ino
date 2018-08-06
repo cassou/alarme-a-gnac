@@ -50,6 +50,15 @@ void AT_check_network()
   current_at_cmd.cb = AT_generic_cb;
 }
 
+void AT_set_message_text_mode()
+{
+  AT_send(F("AT+CMGF=1\r\n"));
+  current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
+  current_at_cmd.expected_responses[0] = at_resp_ok;
+  current_at_cmd.expected_responses[1] = NULL;
+  current_at_cmd.cb = AT_generic_cb;
+}
+
 void AT_generic_cb(bool success)
 {
   if(success) {

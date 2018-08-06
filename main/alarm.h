@@ -25,6 +25,12 @@ enum gsm_event {
   GSM_EVT_TIMEOUT,
 };
 
+enum gsm_event_type {
+  GSM_EVT_TYPE_CALL,
+  GSM_EVT_TYPE_GOTO,
+  GSM_EVT_TYPE_LAST,
+};
+
 #define info(x) Serial.print(F(x))
 
 #endif

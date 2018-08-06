@@ -8,8 +8,6 @@
 #define GSM_TIMEOUT    5000
 #define MESSAGE  "hello,world"
 
-SoftwareSerial mySerial(GPRS_PIN_TX, GPRS_PIN_RX); // RX, TX
-
 enum gsm_action_type {
   SMS,
 };
@@ -28,113 +26,114 @@ struct gsm_step_t;
 
 struct gsm_event_t{
   enum gsm_event event_id;
-  struct gsm_step_t * (*on_event)();
+  enum gsm_event_type type;
+  union{
+    struct gsm_step_t * (*on_event)();
+    struct gsm_step_t * goto_step;
+  };
 };
 
 struct gsm_step_t{
-  char name[];
   void (*on_enter)();
   void (*on_run)();
   struct gsm_event_t * events;
 } ;
 
-const struct gsm_event_t step_check_power_evt[] = {
-  {
-    .event_id = GSM_EVT_SUCCESS,
-    .on_event = gsmstep_check_power_on_success
-  },
-  {
-    .event_id = GSM_EVT_FAILURE,
-    .on_event = gsmstep_check_power_on_failure
-  },
-  {
-    .event_id = GSM_EVT_NONE,
-    .on_event = NULL
+extern const struct gsm_step_t gsmstep_set_full_fonctionnality;
+extern const struct gsm_step_t gsmstep_check_sim;
+extern const struct gsm_step_t gsmstep_set_message_text_mode;
+extern const struct gsm_step_t gsmstep_check_network;
+extern const struct gsm_step_t gsmstep_idle;
+
+#define EVT_GOTO(i,s)                                 \
+  {                                                   \
+    .event_id = i,                                    \
+    .type = GSM_EVT_TYPE_GOTO,                        \
+    {                                                 \
+      .goto_step = s                                  \
+    }                                                 \
   }
+
+#define EVT_CALL(i,s)                                 \
+  {                                                   \
+    .event_id = i,                                    \
+    .type = GSM_EVT_TYPE_CALL,                        \
+    {                                                 \
+      .on_event = s                                   \
+    }                                                 \
+  }
+
+#define EVT_LAST()                                    \
+  {                                                   \
+    .event_id = GSM_EVT_NONE,                         \
+    .type = GSM_EVT_TYPE_LAST                         \
+  }
+
+const struct gsm_event_t step_check_power_evt[] = {
+  EVT_GOTO(GSM_EVT_SUCCESS, &gsmstep_set_full_fonctionnality),
+  EVT_CALL(GSM_EVT_FAILURE, &gsmstep_check_power_on_failure),
+  EVT_LAST()
 };
 
 const struct gsm_step_t gsmstep_check_power = {
-  "check_power",
-  .on_enter = gsmstep_check_power_on_enter,
+  .on_enter = AT_disable_echo,
   .on_run = NULL,
   .events = step_check_power_evt,
 };
 
 const struct gsm_event_t step_set_full_fonctionnality_evt[] = {
-  {
-    .event_id = GSM_EVT_SUCCESS,
-    .on_event = gsmstep_set_full_fonctionnality_on_success
-  },
-  {
-    .event_id = GSM_EVT_FAILURE,
-    .on_event = gsmstep_set_full_fonctionnality_on_failure
-  },
-  {
-    .event_id = GSM_EVT_NONE,
-    .on_event = NULL
-  }
+  EVT_GOTO(GSM_EVT_SUCCESS, &gsmstep_check_sim),
+  EVT_GOTO(GSM_EVT_FAILURE, &gsmstep_set_full_fonctionnality),
+  EVT_LAST()
 };
 
 const struct gsm_step_t gsmstep_set_full_fonctionnality = {
-  "set full func",
-  .on_enter = gsmstep_set_full_fonctionnality_on_enter,
+  .on_enter = AT_set_full_fonctionnality,
   .on_run = NULL,
   .events = step_set_full_fonctionnality_evt,
 };
 
 const struct gsm_event_t step_check_sim_evt[] = {
-  {
-    .event_id = GSM_EVT_SUCCESS,
-    .on_event = gsmstep_check_sim_on_success
-  },
-  {
-    .event_id = GSM_EVT_FAILURE,
-    .on_event = gsmstep_check_sim_on_failure
-  },
-  {
-    .event_id = GSM_EVT_NONE,
-    .on_event = NULL
-  }
+  EVT_GOTO(GSM_EVT_SUCCESS, &gsmstep_check_network),
+  EVT_GOTO(GSM_EVT_FAILURE, &gsmstep_check_sim),
+  EVT_LAST()
 };
 
 const struct gsm_step_t gsmstep_check_sim = {
-  "check_sim",
-  .on_enter = gsmstep_check_sim_on_enter,
+  .on_enter = AT_check_sim,
   .on_run = NULL,
   .events = step_check_sim_evt,
 };
 
 const struct gsm_event_t step_check_network_evt[] = {
-  {
-    .event_id = GSM_EVT_SUCCESS,
-    .on_event = gsmstep_check_network_on_success
-  },
-  {
-    .event_id = GSM_EVT_FAILURE,
-    .on_event = gsmstep_check_network_on_failure
-  },
-  {
-    .event_id = GSM_EVT_NONE,
-    .on_event = NULL
-  }
+  EVT_GOTO(GSM_EVT_SUCCESS, &gsmstep_set_message_text_mode),
+  EVT_GOTO(GSM_EVT_FAILURE, &gsmstep_check_network),
+  EVT_LAST()
 };
 
 const struct gsm_step_t gsmstep_check_network = {
-  "check_network",
-  .on_enter = gsmstep_check_network_on_enter,
+  .on_enter = AT_check_network,
   .on_run = NULL,
   .events = step_check_network_evt,
 };
 
+const struct gsm_event_t step_set_message_text_mode_evt[] = {
+  EVT_GOTO(GSM_EVT_SUCCESS, &gsmstep_idle),
+  EVT_GOTO(GSM_EVT_FAILURE, &gsmstep_set_message_text_mode),
+  EVT_LAST()
+};
+
+const struct gsm_step_t gsmstep_set_message_text_mode = {
+  .on_enter = AT_set_message_text_mode,
+  .on_run = NULL,
+  .events = step_set_message_text_mode_evt,
+};
+
 const struct gsm_event_t step_idle_evt[] = {
-  {
-    .event_id = GSM_EVT_NONE,
-    .on_event = NULL
-  }
+  EVT_LAST()
 };
 
 const struct gsm_step_t gsmstep_idle = {
-  "gsm idle",
   .on_enter = NULL,
   .on_run = gsmstep_idle_on_run,
   .events = step_idle_evt,
@@ -142,75 +141,13 @@ const struct gsm_step_t gsmstep_idle = {
 
 QueueArray <enum gsm_event> gsm_events;
 QueueArray <struct gsm_action> gsm_actions;
+SoftwareSerial mySerial(GPRS_PIN_TX, GPRS_PIN_RX); // RX, TX
 static struct gsm_step_t * current_step = &gsmstep_check_power;
-
-void gsmstep_check_power_on_enter()
-{
-  myPrintf("%s\n", __FUNCTION__);
-  AT_disable_echo();
-}
 
 struct gsm_step_t * gsmstep_check_power_on_failure()
 {
   gsm_power_up();
   return &gsmstep_check_power;
-}
-
-struct gsm_step_t * gsmstep_check_power_on_success()
-{
-  info("gsm power is up !\n");
-  return &gsmstep_set_full_fonctionnality;
-}
-
-void gsmstep_set_full_fonctionnality_on_enter()
-{
-  myPrintf("%s\n", __FUNCTION__);
-  AT_set_full_fonctionnality();
-}
-
-struct gsm_step_t * gsmstep_set_full_fonctionnality_on_failure()
-{
-  return &gsmstep_set_full_fonctionnality;
-}
-
-struct gsm_step_t * gsmstep_set_full_fonctionnality_on_success()
-{
-  info("gsm full func !\n");
-  return &gsmstep_check_sim;
-}
-
-void gsmstep_check_sim_on_enter()
-{
-  myPrintf("%s\n", __FUNCTION__);
-  AT_check_sim();
-}
-
-struct gsm_step_t * gsmstep_check_sim_on_failure()
-{
-  return &gsmstep_check_sim;
-}
-
-struct gsm_step_t * gsmstep_check_sim_on_success()
-{
-  info("gsm sim ok !\n");
-  return &gsmstep_check_network;
-}
-
-void gsmstep_check_network_on_enter()
-{
-  myPrintf("%s\n", __FUNCTION__);
-  AT_check_network();
-}
-
-struct gsm_step_t * gsmstep_check_network_on_failure()
-{
-  return &gsmstep_check_network;
-}
-
-struct gsm_step_t * gsmstep_check_network_on_success()
-{
-  info("network ok !");
-  return &gsmstep_idle;
 }
 
 void gsmstep_idle_on_run()
@@ -227,15 +164,6 @@ void gsmstep_idle_on_run()
 void gsm_setup()
 {
   mySerial.begin(9600);
- 
-/*  while(!gprs.init()) {
-    delay(1000);
-    Serial.println("Initialization failed!");
-  }
-  while(!gprs.isNetworkRegistered()) {
-    delay(1000);
-    Serial.println("Network has not registered yet!");
-  }*/
   gsm_push_event(GSM_EVT_NONE); //to start the state machine
 }
 
@@ -264,16 +192,21 @@ void gsm_handle_events()
     enum gsm_event event  = gsm_events.dequeue();
     if(current_step->events) {
       int i = 0;
-      for(i=0; current_step->events[i].event_id!=GSM_EVT_NONE; i++){
+      for(i=0; current_step->events[i].type!=GSM_EVT_TYPE_LAST; i++){
         if(current_step->events[i].event_id==event) {
           break;
         }
       }
-      if(current_step->events[i].on_event) {
+      if(current_step->events[i].type==GSM_EVT_TYPE_CALL
+          && current_step->events[i].on_event) {
         struct gsm_step_t * res = current_step->events[i].on_event();
         if(res){
           current_step = res;
         }
+      } else if (current_step->events[i].type==GSM_EVT_TYPE_GOTO){
+        if(current_step->events[i].goto_step){
+          current_step = current_step->events[i].goto_step;
+        }        
       }
     }
     if(current_step->on_enter) {
