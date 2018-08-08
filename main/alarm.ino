@@ -36,7 +36,7 @@ void alarm_handle_events(enum fsm_event evt)
   }
   if(old_state != config.alarm_state) {
     old_state = config.alarm_state;
-    config_save();
+    config_save_state();
     push_event(EVT_ALARM_STATE_CHANGED);
     if(config.alarm_state == ALARM_RUNNING){
       send_sms_to_all();

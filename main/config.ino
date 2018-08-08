@@ -26,3 +26,15 @@ void config_save() {
     EEPROM.write(t, *((char*)&config + t));
   }
 }
+
+void config_save_state() {
+  unsigned int start = (unsigned int)(&config.alarm_state) - (unsigned int)(&config);
+  unsigned int size = sizeof(config.alarm_state);
+  config_save_partial(start, size);
+}
+
+void config_save_partial(unsigned int start, unsigned int size) {
+  for (unsigned int t=start; t<start+size; t++){
+    EEPROM.write(t, *((char*)&config + t));
+  }
+}
