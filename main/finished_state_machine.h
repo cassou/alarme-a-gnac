@@ -18,6 +18,8 @@ enum fsm_event {
   EVT_GSM_SUCCESS,
   EVT_GSM_FAILURE,
   EVT_GSM_TIMEOUT,
+  EVT_GSM_BEGIN_SMS,
+  EVT_GSM_SMS_DATA
 };
 
 enum event_type {

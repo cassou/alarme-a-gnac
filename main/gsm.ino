@@ -4,10 +4,10 @@
 
 #define GPRS_PIN_TX    7
 #define GPRS_PIN_RX    6
-#define PHONE_NUMBER "xxxxxxxxxxxx"
+#define PHONE_NUMBER   "+33678887642"
 #define GPRS_PIN_POWER 9
-#define BAUDRATE       9600
-#define GSM_TIMEOUT    5000
+#define BAUDRATE       115200
+#define PHONE_NUMBER   "+33678887642"
 #define MESSAGE  "hello,world"
 
 enum gsm_action_type {
@@ -29,6 +29,8 @@ extern const struct fsm_step_t gsmstep_check_sim;
 extern const struct fsm_step_t gsmstep_set_message_text_mode;
 extern const struct fsm_step_t gsmstep_check_network;
 extern const struct fsm_step_t gsmstep_idle;
+extern const struct fsm_step_t gsmstep_sms_begin;
+extern const struct fsm_step_t gsmstep_sms_data;
 
 const struct fsm_event_t step_check_power_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_set_full_fonctionnality),
@@ -100,6 +102,30 @@ const struct fsm_step_t gsmstep_idle = {
   .events = step_idle_evt,
 };
 
+const struct fsm_event_t step_sms_begin_evt[] = {
+  EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_sms_data),
+  EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_idle),
+  EVT_LAST()
+};
+
+const struct fsm_step_t gsmstep_sms_begin = {
+  .on_enter = gsmstep_sms_begin_on_enter,
+  .on_run = NULL,
+  .events = step_sms_begin_evt,
+};
+
+const struct fsm_event_t step_sms_data_evt[] = {
+  EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_idle),
+  EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_idle),
+  EVT_LAST()
+};
+
+const struct fsm_step_t gsmstep_sms_data = {
+  .on_enter = gsmstep_sms_data_on_enter,
+  .on_run = NULL,
+  .events = step_sms_data_evt,
+};
+
 QueueArray <struct gsm_action> gsm_actions;
 SoftwareSerial mySerial(GPRS_PIN_TX, GPRS_PIN_RX); // RX, TX
 static struct fsm_step_t * gsm_current_step = &gsmstep_check_power;
@@ -116,9 +142,21 @@ void gsmstep_idle_on_run()
   if (!gsm_actions.isEmpty()) {
     struct gsm_action action = gsm_actions.dequeue();
     switch(action.type){
-      case SMS:do_send_sms();break;
+      case SMS:
+        push_event(EVT_GSM_BEGIN_SMS);
+        break;
     }
   }
+}
+
+void gsmstep_sms_begin_on_enter()
+{
+  AT_begin_sms(PHONE_NUMBER);
+}
+
+void gsmstep_sms_data_on_enter()
+{
+  AT_sms_data("Hello you ;)");
 }
 
 void gsm_setup()

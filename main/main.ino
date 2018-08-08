@@ -2,6 +2,7 @@
 #include <QueueArray.h>
 #include "alarm.h"
 #include "finished_state_machine.h"
+#include "defines.h"
 
 QueueArray <enum fsm_event> events_queue;
 

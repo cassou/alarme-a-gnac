@@ -1,8 +1,10 @@
+#define GSM_TIMEOUT    5000
 
 static const char at_resp_ok[]          = "OK\r\n";
 static const char at_resp_pin_ready[]   = "+CPIN: READY\r\n";
 static const char at_resp_net_home[]    = "+CREG: 0,1\r\n";
 static const char at_resp_net_roaming[] = "+CREG: 0,5\r\n";
+static const char at_resp_prompt[]           = ">\r\n";
 
 static char receive_buff[128];
 static uint8_t receive_buff_index = 0;
@@ -25,6 +27,7 @@ void AT_disable_echo()
 
 void AT_set_full_fonctionnality()
 {
+  info(">>");
   AT_send(F("AT+CFUN=1\r\n"));
   current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
   current_at_cmd.expected_responses[0] = at_resp_ok;
@@ -34,6 +37,7 @@ void AT_set_full_fonctionnality()
 
 void AT_check_sim()
 {
+  info(">>");
   AT_send(F("AT+CPIN?\r\n"));
   current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
   current_at_cmd.expected_responses[0] = at_resp_pin_ready;
@@ -43,6 +47,7 @@ void AT_check_sim()
 
 void AT_check_network()
 {
+  info(">>");
   AT_send(F("AT+CREG?\r\n"));
   current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
   current_at_cmd.expected_responses[0] = at_resp_net_home;
@@ -52,7 +57,33 @@ void AT_check_network()
 
 void AT_set_message_text_mode()
 {
+  info(">>");
   AT_send(F("AT+CMGF=1\r\n"));
+  current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
+  current_at_cmd.expected_responses[0] = at_resp_ok;
+  current_at_cmd.expected_responses[1] = NULL;
+  current_at_cmd.cb = AT_generic_cb;
+}
+
+void AT_begin_sms(const char * number)
+{
+  info(">>");
+  AT_send(F("AT+CMGS=\"+33678887642\"\r"));
+  delay(100);
+  // AT_send("trololo");
+  // AT_send((char)26);
+  // AT_send(number);
+  current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
+  current_at_cmd.expected_responses[0] = at_resp_prompt;
+  current_at_cmd.expected_responses[1] = NULL;
+  current_at_cmd.cb = AT_generic_cb;
+}
+
+void AT_sms_data(const char * data)
+{
+  info(">>");
+  AT_send(data);
+  AT_send((char)26);
   current_at_cmd.timeout_date = millis() + GSM_TIMEOUT;
   current_at_cmd.expected_responses[0] = at_resp_ok;
   current_at_cmd.expected_responses[1] = NULL;
@@ -70,16 +101,20 @@ void AT_generic_cb(bool success)
   }
 }
 
+void AT_send(char cmd)
+{
+  Serial.write(cmd);
+  mySerial.write(cmd);
+}
+
 void AT_send(const char * cmd)
 {
-  info(">>");
-  Serial.write(cmd);
+  Serial.print(cmd);
   mySerial.print(cmd);
 }
 
 void AT_send(const __FlashStringHelper* cmd)
 {
-  info(">>");
   int i = 0;
   const char *ptr = (const char *) cmd;
   while (pgm_read_byte(ptr + i) != 0x00) {

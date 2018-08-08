@@ -48,7 +48,7 @@ static struct fsm_step_t * ui_current_step = &screen_idle;
 
 void ui_setup()
 {
-  // lcd.begin(20,4);               // initialize the lcd
+  lcd.begin(20,4);               // initialize the lcd
   pinMode(PIN_LED_YELLOW, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_GREEN, OUTPUT);
