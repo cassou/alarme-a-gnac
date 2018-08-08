@@ -46,6 +46,6 @@ void keyboard_polling()
     if(c=='c'){
       kbd_erase();
       push_event(EVT_KBD);
-    } 
+    }
   }
 }

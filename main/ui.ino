@@ -146,7 +146,7 @@ void display_on_screen(const char * line1, const char * line2,
 
 void redraw_leds()
 {
-  switch (current_state){
+  switch (get_alarm_state()){
     case ALARM_DISARMED:
       digitalWrite(PIN_LED_YELLOW, true);
       digitalWrite(PIN_LED_RED, true);

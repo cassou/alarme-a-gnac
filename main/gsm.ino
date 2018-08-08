@@ -129,11 +129,15 @@ void gsm_setup()
 
 void send_sms_to_all()
 {
-  struct gsm_action action;
-  action.type = SMS;
-  action.sms.number_id = 0;
-  action.sms.msg_id = 0;
-  gsm_push_action(action);
+  for(int i=0; i<PHONE_NUMBERS_COUNT; i++) {
+    if(config.phone_numbers[i][0]!=0){
+      struct gsm_action action;
+      action.type = SMS;
+      action.sms.number_id = i;
+      action.sms.msg_id = 0;
+      gsm_push_action(action);
+    }
+  }
 }
 
 void gsm_push_action(struct gsm_action action)

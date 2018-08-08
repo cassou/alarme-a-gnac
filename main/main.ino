@@ -7,6 +7,7 @@ QueueArray <enum fsm_event> events_queue;
 
 void setup() {
   Serial.begin(115200);
+  config_load();
   alarm_setup();
   ui_setup();
   rf_setup();
