@@ -1,4 +1,5 @@
 #include "alarm.h"
+#include "finished_state_machine.h"
 
 static enum alarm_state current_state = ALARM_DISARMED;
 
@@ -11,7 +12,7 @@ enum alarm_state get_alarm_state()
   return current_state;
 }
 
-void alarm_handle_events(enum alarm_event evt)
+void alarm_handle_events(enum fsm_event evt)
 {
   static enum alarm_state old_state = current_state;
   switch (current_state){

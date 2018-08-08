@@ -62,11 +62,11 @@ void AT_set_message_text_mode()
 void AT_generic_cb(bool success)
 {
   if(success) {
-    info("GSM_EVT_SUCCESS\n");
-    gsm_push_event(GSM_EVT_SUCCESS);
+    info("EVT_GSM_SUCCESS\n");
+    push_event(EVT_GSM_SUCCESS);
   } else {
-    info("GSM_EVT_FAILURE\n");
-    gsm_push_event(GSM_EVT_FAILURE);
+    info("EVT_GSM_FAILURE\n");
+    push_event(EVT_GSM_FAILURE);
   }
 }
 

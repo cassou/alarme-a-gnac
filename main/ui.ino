@@ -1,4 +1,6 @@
 #include <LiquidCrystal_I2C.h>
+#include "alarm.h"
+#include "finished_state_machine.h"
 
 #define PIN_LED_RED (10)
 #define PIN_LED_GREEN (11)
@@ -10,71 +12,43 @@ const char * TXT_ALARM_RUNNING = "ALARM RUNNING";
 
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
-struct screen_t;
-
-struct event_t{
-  enum alarm_event event_id;
-  struct screen_t * (*on_event)();
+const struct fsm_event_t screen_idle_evt[] = {
+  EVT_CALL(EVT_KBD, &screen_idle_on_kbd),
+  EVT_LAST()
 };
 
-struct screen_t{
-  char name[];
-  void (*redraw)();
-  struct event_t * events;
-} ;
-
-const struct event_t scr_idle_evt[] = {
-  {
-    .event_id = EVT_KBD,
-    .on_event = scr_idle_on_kbd
-  },
-  {
-    .event_id = EVT_NONE,
-    .on_event = NULL
-  }
+const struct fsm_step_t screen_idle = {
+  .on_enter = NULL,
+  .on_run = screen_idle_run,
+  .events = screen_idle_evt,
 };
 
-const struct screen_t scr_idle = {
-  "idle",
-  scr_idle_redraw,
-  scr_idle_evt,
+const struct fsm_event_t screen_passwd_evt[] = {
+  EVT_CALL(EVT_KBD_VALIDATE, &screen_passwd_on_validate),
+  EVT_LAST()
 };
 
-const struct event_t scr_passwd_evt[] = {
-  {
-    .event_id = EVT_KBD_VALIDATE,
-    .on_event = scr_passwd_on_validate
-  },
-  {
-    .event_id = EVT_NONE,
-    .on_event = NULL
-  }
+const struct fsm_step_t screen_passwd = {
+  .on_enter = NULL,
+  .on_run = screen_passwd_run,
+  .events = screen_passwd_evt,
 };
 
-const struct screen_t scr_passwd = {
-  "passwd",
-  scr_passwd_redraw,
-  scr_passwd_evt,
+const struct fsm_event_t screen_settings_evt[] = {
+  EVT_LAST()
 };
 
-const struct event_t scr_settings_evt[] = {
-  {
-    .event_id = EVT_NONE,
-    .on_event = NULL
-  }
+const struct fsm_step_t screen_settings = {
+  .on_enter = NULL,
+  .on_run = screen_settings_run,
+  .events = screen_settings_evt,
 };
 
-const struct screen_t scr_settings = {
-  "settings",
-  scr_settings_redraw,
-  scr_settings_evt,
-};
-
-static struct screen_t * current_screen = &scr_idle;
+static struct fsm_step_t * ui_current_step = &screen_idle;
 
 void ui_setup()
 {
-  lcd.begin(20,4);               // initialize the lcd 
+  // lcd.begin(20,4);               // initialize the lcd
   pinMode(PIN_LED_YELLOW, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_GREEN, OUTPUT);
@@ -84,33 +58,14 @@ void ui_setup()
   ui_handle_events(EVT_NONE);
 }
 
-void ui_handle_events(enum alarm_event evt)
+void ui_handle_events(enum fsm_event evt)
 {
   myPrintf("%s %d\n", __FUNCTION__, evt);
-
-  if(current_screen->events) {
-    int i = 0;
-    for(i=0; current_screen->events[i].event_id!=EVT_NONE; i++){
-      if(current_screen->events[i].event_id==evt) {
-        break;
-      }
-    }
-    if(current_screen->events[i].on_event) {
-      struct screen_t * res = current_screen->events[i].on_event();
-      if(res){
-        current_screen = res;
-      }
-    }
-  }
-
-  if(current_screen->redraw) {
-    current_screen->redraw();
-  }
-
   redraw_leds();
+  fsm_run(&ui_current_step, evt);
 }
 
-void scr_idle_redraw()
+void screen_idle_run()
 {
   myPrintf("%s\n", __FUNCTION__);
   const char * line2;
@@ -122,29 +77,29 @@ void scr_idle_redraw()
   display_on_screen("SCREEN_IDLE", line2, "Ligne 3", "xxx");
 }
 
-struct screen_t * scr_idle_on_kbd()
+struct fsm_step_t * screen_idle_on_kbd()
 {
   myPrintf("%s\n", __FUNCTION__);
-  return &scr_passwd;
+  return &screen_passwd;
 }
 
-void scr_passwd_redraw()
+void screen_passwd_run()
 {
   display_on_screen("SCREEN_PASSWORD", "Enter code", keyboard_get_buffer(), "");
 }
 
-struct screen_t * scr_passwd_on_validate()
+struct fsm_step_t * screen_passwd_on_validate()
 {
   myPrintf("%s\n", __FUNCTION__);
-  struct screen_t * rc = NULL;
+  struct fsm_step_t * rc = NULL;
   //if this was a real project, make pwd comparision time constant
   if(strcmp(keyboard_get_buffer(), "123") == 0){
     push_event(EVT_DISARM);
-    rc = &scr_idle;
+    rc = &screen_idle;
   }
   if(strcmp(keyboard_get_buffer(), "456") == 0){
     push_event(EVT_DISARM);
-    rc = &scr_settings;
+    rc = &screen_settings;
   }
   if(!rc) {
     myPrintf("bad passwd <%s>\n", keyboard_get_buffer);
@@ -153,7 +108,7 @@ struct screen_t * scr_passwd_on_validate()
   return rc;
 }
 
-void scr_settings_redraw()
+void screen_settings_run()
 {
   display_on_screen("SCREEN_SETTINGS", "", "", "");
 }
