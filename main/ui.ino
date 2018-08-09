@@ -10,6 +10,16 @@ const char * TXT_ALARM_ARMED = "ALARM ARMED";
 const char * TXT_ALARM_DISARMED = "ALARM DISARMED";
 const char * TXT_ALARM_RUNNING = "ALARM RUNNING";
 
+/* Déclaration des chaines en mémoires */
+PROGMEM const char SENSOR_ADD[] = "ADD A SENSOR";
+PROGMEM const char SENSOR_DEL[] = "REMOVE A SENSOR";
+
+/* Pointeurs sur les caines */
+const char * const menu_sensor[] PROGMEM  = {
+  SENSOR_ADD,
+  SENSOR_DEL,
+};
+
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 const struct fsm_event_t screen_idle_evt[] = {
@@ -67,7 +77,7 @@ void ui_handle_events(enum fsm_event evt)
 
 void screen_idle_run()
 {
-  myPrintf("%s\n", __FUNCTION__);
+  myPrintf("%s %d\n", __FUNCTION__, get_alarm_state());
   const char * line2;
   switch (get_alarm_state()) {
     case ALARM_ARMED: line2 = TXT_ALARM_ARMED; break;
@@ -110,7 +120,31 @@ struct fsm_step_t * screen_passwd_on_validate()
 
 void screen_settings_run()
 {
-  display_on_screen("SCREEN_SETTINGS", "", "", "");
+  // display_on_screen("SCREEN_SETTINGS", "", "", "");
+  display_line_on_screen(0, F("SCREEN_SETTINGS"));
+  display_line_on_screen_P(1, menu_sensor[0]);
+}
+
+void display_line_on_screen(int line, const char * txt)
+{
+  lcd.setCursor(0, line);
+  lcd.print(txt);
+}
+
+void display_line_on_screen(int line, const __FlashStringHelper* cmd)
+{
+  lcd.setCursor(0, line);
+  const char *ptr = (const char *) cmd;
+  byte b;
+  do {
+    b = pgm_read_byte(ptr++);    
+    if (b)  lcd.print((char)b);
+  } while (b);
+}
+
+void display_line_on_screen_P(int line, const char* cmd)
+{
+  display_line_on_screen(line, (const __FlashStringHelper*)cmd);
 }
 
 void display_on_screen(const char * line1, const char * line2,
@@ -136,12 +170,12 @@ void display_on_screen(const char * line1, const char * line2,
   memcpy(buf, line4, strnlen(line4, 20));
   lcd.setCursor(0, 3);
   lcd.print(buf);
-  // Serial.println("********************");
-  // Serial.println(line1);
-  // Serial.println(line2);
-  // Serial.println(line3);
-  // Serial.println(line4);
-  // Serial.println("********************");
+  Serial.println("********************");
+  Serial.println(line1);
+  Serial.println(line2);
+  Serial.println(line3);
+  Serial.println(line4);
+  Serial.println("********************");
 }
 
 void redraw_leds()

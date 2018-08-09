@@ -31,8 +31,8 @@ struct sensor_t {
 struct config {
   char version[4];
   enum alarm_state alarm_state;
-  char phone_numbers[PHONE_NUMBERS_COUNT][PHONE_NUMBER_MAX_LEN];
   uint32_t remotes[REMOTES_COUNT];
+  char phone_numbers[PHONE_NUMBERS_COUNT][PHONE_NUMBER_MAX_LEN];
   struct sensor_t sensors[SENSORS_COUNT];
 };
 

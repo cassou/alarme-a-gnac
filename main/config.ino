@@ -4,12 +4,12 @@
 struct config config = {
   CONFIG_VERSION,
   .alarm_state = ALARM_DISARMED,
+  .remotes = {0,0,0,0,0},
   .phone_numbers = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
   },
-  .remotes = {0,0,0,0,0},
 };
 
 void config_load() {
