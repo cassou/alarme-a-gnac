@@ -6,20 +6,6 @@
 #define PIN_LED_GREEN (11)
 #define PIN_LED_YELLOW (12)
 
-const char * TXT_ALARM_ARMED = "ALARM ARMED";
-const char * TXT_ALARM_DISARMED = "ALARM DISARMED";
-const char * TXT_ALARM_RUNNING = "ALARM RUNNING";
-
-/* Déclaration des chaines en mémoires */
-PROGMEM const char SENSOR_ADD[] = "ADD A SENSOR";
-PROGMEM const char SENSOR_DEL[] = "REMOVE A SENSOR";
-
-/* Pointeurs sur les caines */
-const char * const menu_sensor[] PROGMEM  = {
-  SENSOR_ADD,
-  SENSOR_DEL,
-};
-
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 const struct fsm_event_t screen_idle_evt[] = {
@@ -45,6 +31,8 @@ const struct fsm_step_t screen_passwd = {
 };
 
 const struct fsm_event_t screen_settings_evt[] = {
+  EVT_CALL(EVT_KBD_DOWN, &screen_settings_on_down),
+  EVT_CALL(EVT_KBD_UP, &screen_settings_on_up),
   EVT_LAST()
 };
 
@@ -55,6 +43,38 @@ const struct fsm_step_t screen_settings = {
 };
 
 static struct fsm_step_t * ui_current_step = &screen_idle;
+
+
+
+PROGMEM const char REMOTE[] = "REMOTES SETTINGS";
+PROGMEM const char REMOTE_ADD[] = "Add a remote";
+PROGMEM const char REMOTE_DEL[] = "Delete a remote";
+PROGMEM const char REMOTE_TOTO1[] = "toto 1";
+PROGMEM const char REMOTE_TOTO2[] = "toto 2";
+PROGMEM const char REMOTE_TOTO3[] = "toto 3";
+
+struct menu_item {
+  const char * text;
+  struct fsm_step_t * goto_step;
+};
+
+struct menu {
+  const char * title;
+  const struct menu_item * items;
+  uint8_t index;
+};
+
+const struct menu_item mi_remotes[] =
+{
+  {REMOTE_ADD, &screen_passwd},
+  {REMOTE_DEL, &screen_passwd},
+  {REMOTE_TOTO1, &screen_passwd},
+  {REMOTE_TOTO2, &screen_passwd},
+  {REMOTE_TOTO3, &screen_passwd},
+  {NULL, NULL}
+};
+
+struct menu menu_remotes = {REMOTE, mi_remotes, 0};
 
 void ui_setup()
 {
@@ -78,13 +98,14 @@ void ui_handle_events(enum fsm_event evt)
 void screen_idle_run()
 {
   myPrintf("%s %d\n", __FUNCTION__, get_alarm_state());
-  const char * line2;
+  display_line_on_screen(0, F("SCREEN_IDLE"));
   switch (get_alarm_state()) {
-    case ALARM_ARMED: line2 = TXT_ALARM_ARMED; break;
-    case ALARM_DISARMED: line2 = TXT_ALARM_DISARMED; break;
-    case ALARM_RUNNING: line2 = TXT_ALARM_RUNNING; break;
+    case ALARM_ARMED: display_line_on_screen(1, F("ALARM_ARMED")); break;
+    case ALARM_DISARMED: display_line_on_screen(1, F("ALARM_DISARMED")); break;
+    case ALARM_RUNNING: display_line_on_screen(1, F("ALARM_RUNNING")); break;
   }
-  display_on_screen("SCREEN_IDLE", line2, "Ligne 3", "xxx");
+  display_line_on_screen(2, F(""));
+  display_line_on_screen(3, F(""));
 }
 
 struct fsm_step_t * screen_idle_on_kbd()
@@ -95,12 +116,14 @@ struct fsm_step_t * screen_idle_on_kbd()
 
 void screen_passwd_run()
 {
-  display_on_screen("SCREEN_PASSWORD", "Enter code", keyboard_get_buffer(), "");
+  display_line_on_screen(0, F("SCREEN_PASSWORD"));
+  display_line_on_screen(1, F("Enter code:"));
+  display_line_on_screen(2, keyboard_get_buffer());
+  display_line_on_screen(3, F(""));
 }
 
 struct fsm_step_t * screen_passwd_on_validate()
 {
-  myPrintf("%s\n", __FUNCTION__);
   struct fsm_step_t * rc = NULL;
   //if this was a real project, make pwd comparision time constant
   if(strcmp(keyboard_get_buffer(), "123") == 0){
@@ -118,17 +141,67 @@ struct fsm_step_t * screen_passwd_on_validate()
   return rc;
 }
 
+struct fsm_step_t *  screen_settings_on_down()
+{
+  menu_next(&menu_remotes);
+  return NULL;
+}
+
+struct fsm_step_t * screen_settings_on_up()
+{
+  menu_prev(&menu_remotes);
+  return NULL;
+}
+
 void screen_settings_run()
 {
-  // display_on_screen("SCREEN_SETTINGS", "", "", "");
-  display_line_on_screen(0, F("SCREEN_SETTINGS"));
-  display_line_on_screen_P(1, menu_sensor[0]);
+  menu_render(&menu_remotes);
+}
+
+void menu_next(struct menu * menu)
+{
+  if(menu->items[menu->index+1].text!=NULL) {
+    menu->index++;
+  }
+}
+
+void menu_prev(struct menu * menu)
+{
+  if(menu->index>0) {
+    menu->index--;
+  }
+}
+
+void menu_render(struct menu * menu)
+{
+  display_line_on_screen_P(0, menu->title);
+  int cur_line = 1;
+  int cur_index = 0+menu->index;
+  while (cur_line<4){
+    if(menu->items[cur_index].text!=NULL) {
+      display_line_on_screen_P(cur_line, menu->items[cur_index].text);
+      cur_index++;
+    } else {
+      display_line_on_screen(cur_line, "");
+    }
+    cur_line++;
+  }
 }
 
 void display_line_on_screen(int line, const char * txt)
 {
   lcd.setCursor(0, line);
   lcd.print(txt);
+  int cnt = strlen(txt);
+
+  for(cnt; cnt<20; cnt++){
+    lcd.print(' ');
+  }
+}
+
+void display_line_on_screen_P(int line, const char* cmd)
+{
+  display_line_on_screen(line, (const __FlashStringHelper*)cmd);
 }
 
 void display_line_on_screen(int line, const __FlashStringHelper* cmd)
@@ -137,45 +210,16 @@ void display_line_on_screen(int line, const __FlashStringHelper* cmd)
   const char *ptr = (const char *) cmd;
   byte b;
   do {
-    b = pgm_read_byte(ptr++);    
-    if (b)  lcd.print((char)b);
+    b = pgm_read_byte(ptr++);
+    if (b) {
+      lcd.print((char)b);
+    }
   } while (b);
-}
 
-void display_line_on_screen_P(int line, const char* cmd)
-{
-  display_line_on_screen(line, (const __FlashStringHelper*)cmd);
-}
-
-void display_on_screen(const char * line1, const char * line2,
-                       const char * line3, const char * line4)
-{
-  char buf[20+1] = {0};
-  memset(buf, ' ', 20);
-  memcpy(buf, line1, strnlen(line1, 20));
-  lcd.setCursor(0, 0);
-  lcd.print(buf);
-
-  memset(buf, ' ', 20);
-  memcpy(buf, line2, strnlen(line2, 20));
-  lcd.setCursor(0, 1);
-  lcd.print(buf);
-
-  memset(buf, ' ', 20);
-  memcpy(buf, line3, strnlen(line3, 20));
-  lcd.setCursor(0, 2);
-  lcd.print(buf);
-
-  memset(buf, ' ', 20);
-  memcpy(buf, line4, strnlen(line4, 20));
-  lcd.setCursor(0, 3);
-  lcd.print(buf);
-  Serial.println("********************");
-  Serial.println(line1);
-  Serial.println(line2);
-  Serial.println(line3);
-  Serial.println(line4);
-  Serial.println("********************");
+  int cnt = (unsigned int)ptr-(unsigned int)cmd;
+  for(cnt; cnt<=20; cnt++){
+    lcd.print(' ');
+  }
 }
 
 void redraw_leds()

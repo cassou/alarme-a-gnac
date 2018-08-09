@@ -13,6 +13,8 @@ enum fsm_event {
   EVT_ALARM_STATE_CHANGED,
   EVT_KBD,
   EVT_KBD_VALIDATE,
+  EVT_KBD_DOWN,
+  EVT_KBD_UP,
 
   /* used for the gsm*/
   EVT_GSM_SUCCESS,

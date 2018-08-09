@@ -47,5 +47,11 @@ void keyboard_polling()
       kbd_erase();
       push_event(EVT_KBD);
     }
+    if(c=='>'){
+      push_event(EVT_KBD_DOWN);
+    }
+    if(c=='<'){
+      push_event(EVT_KBD_UP);
+    }
   }
 }
