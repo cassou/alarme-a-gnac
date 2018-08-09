@@ -8,41 +8,9 @@
 
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
-const struct fsm_event_t screen_idle_evt[] = {
-  EVT_CALL(EVT_KBD, &screen_idle_on_kbd),
-  EVT_LAST()
-};
-
-const struct fsm_step_t screen_idle = {
-  .on_enter = NULL,
-  .on_run = screen_idle_run,
-  .events = screen_idle_evt,
-};
-
-const struct fsm_event_t screen_passwd_evt[] = {
-  EVT_CALL(EVT_KBD_VALIDATE, &screen_passwd_on_validate),
-  EVT_LAST()
-};
-
-const struct fsm_step_t screen_passwd = {
-  .on_enter = NULL,
-  .on_run = screen_passwd_run,
-  .events = screen_passwd_evt,
-};
-
-const struct fsm_event_t screen_settings_evt[] = {
-  EVT_CALL(EVT_KBD_DOWN, &screen_settings_on_down),
-  EVT_CALL(EVT_KBD_UP, &screen_settings_on_up),
-  EVT_LAST()
-};
-
-const struct fsm_step_t screen_settings = {
-  .on_enter = NULL,
-  .on_run = screen_settings_run,
-  .events = screen_settings_evt,
-};
-
-static struct fsm_step_t * ui_current_step = &screen_idle;
+extern const struct fsm_step_t screen_passwd;
+extern const struct fsm_step_t screen_remote_scan;
+extern const struct fsm_step_t screen_remote_scan_found;
 
 
 
@@ -66,7 +34,7 @@ struct menu {
 
 const struct menu_item mi_remotes[] =
 {
-  {REMOTE_ADD, &screen_passwd},
+  {REMOTE_ADD, &screen_remote_scan},
   {REMOTE_DEL, &screen_passwd},
   {REMOTE_TOTO1, &screen_passwd},
   {REMOTE_TOTO2, &screen_passwd},
@@ -75,6 +43,67 @@ const struct menu_item mi_remotes[] =
 };
 
 struct menu menu_remotes = {REMOTE, mi_remotes, 0};
+
+
+const struct fsm_event_t screen_idle_evt[] = {
+  EVT_CALL(EVT_KBD, &screen_idle_on_kbd, NULL),
+  EVT_LAST()
+};
+
+const struct fsm_step_t screen_idle = {
+  .on_enter = NULL,
+  .on_run = screen_idle_run,
+  .events = screen_idle_evt,
+};
+
+const struct fsm_event_t screen_passwd_evt[] = {
+  EVT_CALL(EVT_KBD_VALIDATE, &screen_passwd_on_validate, NULL),
+  EVT_LAST()
+};
+
+const struct fsm_step_t screen_passwd = {
+  .on_enter = NULL,
+  .on_run = screen_passwd_run,
+  .events = screen_passwd_evt,
+};
+
+const struct fsm_event_t screen_settings_evt[] = {
+  MENU_EVENTS(&menu_remotes),
+  EVT_LAST()
+};
+
+const struct fsm_step_t screen_settings = {
+  .on_enter = NULL,
+  .on_run = screen_settings_run,
+  .events = screen_settings_evt,
+};
+
+const struct fsm_event_t screen_remote_scan_evt[] = {
+  EVT_GOTO(EVT_FOUND_REMOTE, &screen_remote_scan_found),
+  EVT_LAST()
+};
+
+const struct fsm_step_t screen_remote_scan = {
+  .on_enter = screen_remote_scan_on_enter,
+  .on_run = NULL,
+  .events = screen_remote_scan_evt,
+};
+
+const struct fsm_event_t screen_remote_scan_found_evt[] = {
+  EVT_LAST()
+};
+
+const struct fsm_step_t screen_remote_scan_found = {
+  .on_enter = screen_remote_scan_found_on_enter,
+  .on_run = NULL,
+  .events = screen_remote_scan_found_evt,
+  .timeout_ms = 5000,
+  .on_timeout = screen_remote_scan_found_on_timeout
+};
+
+static struct fsm_t ui_fsm = {
+  .current_step = &screen_idle
+};
 
 void ui_setup()
 {
@@ -92,7 +121,7 @@ void ui_handle_events(enum fsm_event evt)
 {
   myPrintf("%s %d\n", __FUNCTION__, evt);
   redraw_leds();
-  fsm_run(&ui_current_step, evt);
+  fsm_run(&ui_fsm, evt);
 }
 
 void screen_idle_run()
@@ -108,7 +137,7 @@ void screen_idle_run()
   display_line_on_screen(3, F(""));
 }
 
-struct fsm_step_t * screen_idle_on_kbd()
+struct fsm_step_t * screen_idle_on_kbd(struct fsm_step_t * current_step, void * arg)
 {
   myPrintf("%s\n", __FUNCTION__);
   return &screen_passwd;
@@ -122,7 +151,7 @@ void screen_passwd_run()
   display_line_on_screen(3, F(""));
 }
 
-struct fsm_step_t * screen_passwd_on_validate()
+struct fsm_step_t * screen_passwd_on_validate(struct fsm_step_t * current_step, void * arg)
 {
   struct fsm_step_t * rc = NULL;
   //if this was a real project, make pwd comparision time constant
@@ -141,21 +170,57 @@ struct fsm_step_t * screen_passwd_on_validate()
   return rc;
 }
 
-struct fsm_step_t *  screen_settings_on_down()
+struct fsm_step_t *  menu_on_down(struct fsm_step_t * current_step, void * arg)
 {
-  menu_next(&menu_remotes);
+  menu_next((struct menu *)arg);
   return NULL;
 }
 
-struct fsm_step_t * screen_settings_on_up()
+struct fsm_step_t * menu_on_up(struct fsm_step_t * current_step, void * arg)
 {
-  menu_prev(&menu_remotes);
+  menu_prev((struct menu *)arg);
   return NULL;
+}
+
+struct fsm_step_t * menu_on_validate(struct fsm_step_t * current_step, void * arg)
+{
+  struct menu * m = (struct menu *)arg;
+  return m->items[m->index].goto_step;
 }
 
 void screen_settings_run()
 {
   menu_render(&menu_remotes);
+}
+
+struct fsm_step_t * screen_remote_scan_on_enter(struct fsm_step_t * current_step, void * arg)
+{
+  myPrintf("%s\n", __FUNCTION__);
+  rf_toggle_learning_mode(true);
+  display_line_on_screen(0, F(""));
+  display_line_on_screen(1, F("Press any button"));
+  display_line_on_screen(2, F("on the remote"));
+  display_line_on_screen(3, F(""));
+  return NULL;
+}
+
+struct fsm_step_t * screen_remote_scan_found_on_enter(struct fsm_step_t * current_step, void * arg)
+{
+  display_line_on_screen(0, F(""));
+  if(rf_save_learned_remote()){
+    display_line_on_screen(1, F("Remote saved"));
+    display_line_on_screen(2, F("succesfully"));
+  } else {
+    display_line_on_screen(1, F("Failed to save"));
+    display_line_on_screen(2, F("new remote"));
+  }
+  display_line_on_screen(3, F(""));
+  return NULL;
+}
+
+struct fsm_step_t * screen_remote_scan_found_on_timeout()
+{
+  return &screen_settings;
 }
 
 void menu_next(struct menu * menu)

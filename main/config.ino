@@ -33,6 +33,13 @@ void config_save_state() {
   config_save_partial(start, size);
 }
 
+void config_save_remotes() {
+  unsigned int start = (unsigned int)(&config.remotes) - (unsigned int)(&config);
+  unsigned int size = sizeof(config.remotes);
+  config_save_partial(start, size);
+}
+
+
 void config_save_partial(unsigned int start, unsigned int size) {
   for (unsigned int t=start; t<start+size; t++){
     EEPROM.write(t, *((char*)&config + t));

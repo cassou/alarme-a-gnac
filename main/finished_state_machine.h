@@ -21,7 +21,9 @@ enum fsm_event {
   EVT_GSM_FAILURE,
   EVT_GSM_TIMEOUT,
   EVT_GSM_BEGIN_SMS,
-  EVT_GSM_SMS_DATA
+  EVT_GSM_SMS_DATA,
+
+  EVT_FOUND_REMOTE,
 };
 
 enum event_type {
@@ -39,12 +41,16 @@ enum event_type {
     }                                                 \
   }
 
-#define EVT_CALL(i,s)                                 \
+#define EVT_CALL(i,s,a)                               \
   {                                                   \
     .event_id = i,                                    \
     .type = EVT_TYPE_CALL,                            \
     {                                                 \
-      .on_event = s                                   \
+      .call =                                         \
+      {                                               \
+       .on_event = s,                                 \
+       .arg = a                                       \
+      }                                               \
     }                                                 \
   }
 
@@ -54,13 +60,21 @@ enum event_type {
     .type = EVT_TYPE_LAST                             \
   }
 
+#define MENU_EVENTS(menu) \
+  EVT_CALL(EVT_KBD_DOWN, &menu_on_down, menu), \
+  EVT_CALL(EVT_KBD_UP, &menu_on_up, menu), \
+  EVT_CALL(EVT_KBD_VALIDATE, &menu_on_validate, menu)
+
 struct fsm_step_t;
 
 struct fsm_event_t{
   enum fsm_event event_id;
   enum event_type type;
-  union{
-    struct fsm_step_t * (*on_event)();
+  union {
+    struct {
+      struct fsm_step_t * (*on_event)(struct fsm_step_t * current_step, void * arg);
+      void * arg;
+    } call;
     struct fsm_step_t * goto_step;
   };
 };
@@ -69,6 +83,13 @@ struct fsm_step_t{
   void (*on_enter)();
   void (*on_run)();
   struct fsm_event_t * events;
-} ;
+  unsigned long timeout_ms;
+  struct fsm_step_t * (*on_timeout)();
+};
+
+struct fsm_t {
+  struct fsm_step_t * current_step;
+  unsigned long timeout_date;
+};
 
 #endif

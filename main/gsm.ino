@@ -34,7 +34,7 @@ extern const struct fsm_step_t gsmstep_sms_data;
 
 const struct fsm_event_t step_check_power_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_set_full_fonctionnality),
-  EVT_CALL(EVT_GSM_FAILURE, &gsmstep_check_power_on_failure),
+  EVT_CALL(EVT_GSM_FAILURE, &gsmstep_check_power_on_failure, NULL),
   EVT_LAST()
 };
 
@@ -128,9 +128,13 @@ const struct fsm_step_t gsmstep_sms_data = {
 
 QueueArray <struct gsm_action> gsm_actions;
 SoftwareSerial mySerial(GPRS_PIN_TX, GPRS_PIN_RX); // RX, TX
-static struct fsm_step_t * gsm_current_step = &gsmstep_check_power;
 
-struct fsm_step_t * gsmstep_check_power_on_failure()
+static struct fsm_t gsm_fsm = {
+  .current_step = &gsmstep_check_power
+};
+
+
+struct fsm_step_t * gsmstep_check_power_on_failure(struct fsm_step_t * current_step, void * arg)
 {
   gsm_power_up();
   return &gsmstep_check_power;
@@ -185,7 +189,7 @@ void gsm_push_action(struct gsm_action action)
 
 void gsm_handle_events(enum fsm_event evt)
 {
-  fsm_run(&gsm_current_step, evt);
+  fsm_run(&gsm_fsm, evt);
   AT_read();
 }
 

@@ -26,7 +26,7 @@ struct sensor_t {
   char name[SENSOR_NAME_LEN];
 };
 
-#define CONFIG_VERSION "0001"
+#define CONFIG_VERSION "0002"
 
 struct config {
   char version[4];

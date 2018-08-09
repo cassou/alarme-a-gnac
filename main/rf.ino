@@ -4,6 +4,9 @@
 #include "defines.h"
 
 RCSwitch radioReceiver = RCSwitch();
+bool learning_mode = false;
+uint32_t learned_id = 0;
+
 enum REMOTE_BUTTONS {
   REMOTE_BUTTON_ARM    =(1<<0),
   REMOTE_BUTTON_DISARM =(1<<1),
@@ -18,6 +21,42 @@ void rf_setup()
   radioReceiver.enableReceive(0);  // Receiver on interrupt 0 => that is pin #2
 }
 
+void rf_toggle_learning_mode(bool enabled)
+{
+  learning_mode = enabled;
+}
+
+uint32_t rf_get_learned_id()
+{
+  return learned_id;
+}
+
+bool rf_is_known_remote(uint32_t id)
+{
+  for(int i =0; i<REMOTES_COUNT; i++){
+    if(config.remotes[i] != 0 && //check the key is not empty
+      id == config.remotes[i]){
+      return true;
+    }
+  }
+  return false;
+}
+
+bool rf_save_learned_remote()
+{
+  if(rf_is_known_remote(learned_id)){
+    return true;
+  }
+  for(int i =0; i<REMOTES_COUNT; i++){
+    if (config.remotes[i] == 0) {
+      config.remotes[i] = learned_id;
+      config_save_remotes();
+      return true;
+    }
+  }
+  return false;
+}
+
 void read_remotes() {
   if (radioReceiver.available()) {
     if(radioReceiver.getReceivedBitlength() == REMOTE_BIT_LEN
@@ -25,10 +64,13 @@ void read_remotes() {
       uint32_t received_value = radioReceiver.getReceivedValue();
       uint32_t received_id = received_value >> REMOTE_CMD_LEN;
       uint32_t received_cmd = received_value & REMOTE_CMD_MASK;
-      for(int i =0; i<REMOTES_COUNT; i++){
-        if(config.remotes[i] != 0 && //check the key is not empty
-          received_id == config.remotes[i]){
-          myPrintf("Received cmd %lu from %lu\n",received_cmd, received_id); 
+      if(learning_mode){
+        push_event(EVT_FOUND_REMOTE);
+        learned_id = received_id;
+        rf_toggle_learning_mode(false);
+      } else {
+        if(rf_is_known_remote(received_id)){
+          //myPrintf("Received cmd %lu from %lu\n",received_cmd, received_id);
           switch (received_cmd) {
             case REMOTE_BUTTON_ARM:push_event(EVT_ARM);break;
             case REMOTE_BUTTON_DISARM:push_event(EVT_DISARM);break;

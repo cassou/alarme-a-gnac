@@ -8,6 +8,7 @@ QueueArray <enum fsm_event> events_queue;
 
 void setup() {
   Serial.begin(115200);
+  Serial.println(F("Setup"));
   config_load();
   alarm_setup();
   ui_setup();
@@ -29,6 +30,9 @@ void handle_events()
     gsm_handle_events(evt);
     ui_handle_events(evt);
   }
+    alarm_handle_events(EVT_NONE);
+    gsm_handle_events(EVT_NONE);
+    ui_handle_events(EVT_NONE);
 }
 
 void push_event(enum fsm_event event)
