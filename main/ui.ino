@@ -7,12 +7,14 @@
 #define PIN_LED_YELLOW (12)
 
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+#define LCD_FLAG_ARROW_UP     (1<<0)
+#define LCD_FLAG_ARROW_DOWN   (1<<1)
+#define LCD_FLAG_ARROW_RIGHT  (1<<2)
+#define LCD_FLAG_OFFSET_RIGHT (1<<3)
 
 extern const struct fsm_step_t PROGMEM screen_passwd;
 extern const struct fsm_step_t PROGMEM screen_remote_scan;
 extern const struct fsm_step_t PROGMEM screen_remote_scan_found;
-
-
 
 PROGMEM const char REMOTE[] = "REMOTES SETTINGS";
 PROGMEM const char REMOTE_ADD[] = "Add a remote";
@@ -114,6 +116,32 @@ void ui_setup()
   digitalWrite(PIN_LED_YELLOW, true);
   digitalWrite(PIN_LED_RED, true);
   digitalWrite(PIN_LED_GREEN, true);
+
+  byte up_arrow[8] = {
+    B00100,
+    B01110,
+    B10101,
+    B00100,
+    B00100,
+    B00100,
+    B00000,
+    B00000
+  };
+
+  byte down_arrow[8] = {
+    B00000,
+    B00000,
+    B00100,
+    B00100,
+    B00100,
+    B10101,
+    B01110,
+    B00100
+  };
+  lcd.createChar(1, up_arrow);
+  lcd.createChar(2, down_arrow);
+
+
   ui_handle_events(EVT_NONE);
 }
 
@@ -127,22 +155,22 @@ void ui_handle_events(enum fsm_event evt)
 void screen_idle_run()
 {
   myPrintf("%s %d\n", __FUNCTION__, get_alarm_state());
-  display_line_on_screen(0, F("SCREEN_IDLE"));
+  display_line_on_screen(0, F("SCREEN_IDLE"), 0);
   switch (get_alarm_state()) {
-    case ALARM_ARMED: display_line_on_screen(1, F("ALARM_ARMED")); break;
-    case ALARM_DISARMED: display_line_on_screen(1, F("ALARM_DISARMED")); break;
-    case ALARM_RUNNING: display_line_on_screen(1, F("ALARM_RUNNING")); break;
+    case ALARM_ARMED: display_line_on_screen(1, F("ALARM_ARMED"), 0); break;
+    case ALARM_DISARMED: display_line_on_screen(1, F("ALARM_DISARMED"), 0); break;
+    case ALARM_RUNNING: display_line_on_screen(1, F("ALARM_RUNNING"), 0); break;
   }
-  display_line_on_screen(2, F(""));
-  display_line_on_screen(3, F(""));
+  display_line_on_screen(2, F(""), 0);
+  display_line_on_screen(3, F(""), 0);
 }
 
 void screen_passwd_run()
 {
-  display_line_on_screen(0, F("SCREEN_PASSWORD"));
-  display_line_on_screen(1, F("Enter code:"));
-  display_line_on_screen(2, keyboard_get_buffer());
-  display_line_on_screen(3, F(""));
+  display_line_on_screen(0, F("SCREEN_PASSWORD"), 0);
+  display_line_on_screen(1, F("Enter code:"), 0);
+  display_line_on_screen(2, keyboard_get_buffer(), 0);
+  display_line_on_screen(3, F(""), 0);
 }
 
 struct fsm_step_t * screen_passwd_on_validate(struct fsm_step_t * current_step, void * arg)
@@ -191,24 +219,24 @@ struct fsm_step_t * screen_remote_scan_on_enter(struct fsm_step_t * current_step
 {
   myPrintf("%s\n", __FUNCTION__);
   rf_toggle_learning_mode(true);
-  display_line_on_screen(0, F(""));
-  display_line_on_screen(1, F("Press any button"));
-  display_line_on_screen(2, F("on the remote"));
-  display_line_on_screen(3, F(""));
+  display_line_on_screen(0, F(""), 0);
+  display_line_on_screen(1, F("Press any button"), 0);
+  display_line_on_screen(2, F("on the remote"), 0);
+  display_line_on_screen(3, F(""), 0);
   return NULL;
 }
 
 struct fsm_step_t * screen_remote_scan_found_on_enter(struct fsm_step_t * current_step, void * arg)
 {
-  display_line_on_screen(0, F(""));
+  display_line_on_screen(0, F(""), 0);
   if(rf_save_learned_remote()){
-    display_line_on_screen(1, F("Remote saved"));
-    display_line_on_screen(2, F("succesfully"));
+    display_line_on_screen(1, F("Remote saved"), 0);
+    display_line_on_screen(2, F("succesfully"), 0);
   } else {
-    display_line_on_screen(1, F("Failed to save"));
-    display_line_on_screen(2, F("new remote"));
+    display_line_on_screen(1, F("Failed to save"), 0);
+    display_line_on_screen(2, F("new remote"), 0);
   }
-  display_line_on_screen(3, F(""));
+  display_line_on_screen(3, F(""), 0);
   return NULL;
 }
 
@@ -233,51 +261,113 @@ void menu_prev(struct menu * menu)
 
 void menu_render(struct menu * menu)
 {
-  display_line_on_screen_P(0, menu->title);
-  int cur_line = 1;
-  int cur_index = 0+menu->index;
-  while (cur_line<4){
-    if(menu->items[cur_index].text!=NULL) {
-      display_line_on_screen_P(cur_line, menu->items[cur_index].text);
-      cur_index++;
+
+ int menu_count = 0;
+  while(menu->items[menu_count].text!=NULL) {
+    menu_count++;
+  }
+
+  display_line_on_screen_P(0, menu->title, 0);
+  if(menu->index>0){
+      display_line_on_screen(1, "\1", 0);
+  } else {
+      display_line_on_screen(1, "", 0);
+  }
+
+  display_line_on_screen_P(2, menu->items[menu->index].text,0);
+
+  if(menu->index<(menu_count-1)){
+      display_line_on_screen(3, "\2", 0);
+  } else {
+      display_line_on_screen(3, "", 0);
+  }
+  // int cur_line = 1;
+  // int cur_index = 0+menu->index;
+
+  // int right_arrow_line;
+  // int start_displaying_index;
+  // int display_up_arrow;
+  // if(menu->index<3){
+  //   right_arrow_line = menu->index+1;
+  //   start_displaying_index = 0;
+  //   display_up_arrow = 0;
+  // } else {
+  //   right_arrow_line = 3;
+  //   start_displaying_index = menu->index-2;
+  //   display_up_arrow = 1;
+  // }
+
+  // int menu_count = 0;
+  // while(menu->items[menu_count].text!=NULL) {
+  //   menu_count++;
+  // }
+
+  // for(int i=0; i<3; i++){
+  //   int cur_line = i+1;
+  //   int flags = LCD_FLAG_OFFSET_RIGHT;
+  //   if(cur_line==1 && display_up_arrow) flags|= LCD_FLAG_ARROW_UP;
+  //   if(cur_line==3) flags|= LCD_FLAG_ARROW_DOWN;
+  //   if(cur_line==right_arrow_line) flags|= LCD_FLAG_ARROW_RIGHT;
+  //   if(i+start_displaying_index<menu_count){
+  //     display_line_on_screen_P(cur_line, menu->items[i+start_displaying_index].text,flags);
+  //   } else {
+  //     display_line_on_screen(cur_line, "",flags);
+  //   }
+  // }
+}
+
+void display_line_on_screen(int line, const char * txt, int flags)
+{
+  char data[20];
+  memset(data, ' ', 20);
+  for(int i=0; i<20; i++) {
+    char c = txt[i];
+    if(c==0) break;
+    data[i] = c;
+  }
+  do_display_line_on_screen(line, data, flags);
+}
+
+void display_line_on_screen_P(int line, const char * txt, int flags)
+{
+  display_line_on_screen(line, (const __FlashStringHelper*)txt, flags);
+}
+
+void display_line_on_screen(int line, const __FlashStringHelper* txt, int flags)
+{
+  const char *ptr = (const char *) txt;
+  char data[20];
+  memset(data, ' ', 20);
+  for(int i=0; i<20; i++) {
+    char c = pgm_read_byte(ptr+i);
+    if(c==0) break;
+    data[i] = c;
+  }
+  do_display_line_on_screen(line, data, flags);
+}
+
+void do_display_line_on_screen(int line, char data[20], int flags)
+{
+  lcd.setCursor(0, line);
+  int j = 0;
+  if((flags&LCD_FLAG_OFFSET_RIGHT)){
+    j = 1;
+  }
+
+  for(int i=0; i<20; i++) {
+    if((flags&LCD_FLAG_ARROW_UP) && i==19){
+      lcd.write(byte(1));
+    } else if((flags&LCD_FLAG_ARROW_DOWN) && i==19){
+      lcd.write(byte(2));
+    } else if((flags&LCD_FLAG_ARROW_RIGHT) && i==0){
+      lcd.write('>');
     } else {
-      display_line_on_screen(cur_line, "");
+      if(i-j>=0) {
+        lcd.write(data[i-j]);
+      } else {
+        lcd.write(' ');
+      }
     }
-    cur_line++;
-  }
-}
-
-void display_line_on_screen(int line, const char * txt)
-{
-  lcd.setCursor(0, line);
-  lcd.print(txt);
-  int cnt = strlen(txt);
-
-  for(cnt; cnt<20; cnt++){
-    lcd.print(' ');
-  }
-}
-
-void display_line_on_screen_P(int line, const char* cmd)
-{
-  display_line_on_screen(line, (const __FlashStringHelper*)cmd);
-}
-
-void display_line_on_screen(int line, const __FlashStringHelper* cmd)
-{
-  lcd.setCursor(0, line);
-  const char *ptr = (const char *) cmd;
-  byte b;
-  do {
-    b = pgm_read_byte(ptr++);
-    if (b) {
-      lcd.print((char)b);
-    }
-  } while (b);
-
-  int cnt = (unsigned int)ptr-(unsigned int)cmd;
-  for(cnt; cnt<=20; cnt++){
-    lcd.print(' ');
   }
 }
 
