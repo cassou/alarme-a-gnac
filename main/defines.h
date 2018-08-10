@@ -26,16 +26,33 @@ struct sensor_t {
   char name[SENSOR_NAME_LEN];
 };
 
-#define CONFIG_VERSION "0002"
 
-struct config {
-  char version[4];
-  enum alarm_state alarm_state;
+struct phone_config {
+  char numbers[PHONE_NUMBERS_COUNT][PHONE_NUMBER_MAX_LEN];
+};
+struct remote_config {
   uint32_t remotes[REMOTES_COUNT];
-  char phone_numbers[PHONE_NUMBERS_COUNT][PHONE_NUMBER_MAX_LEN];
+};
+struct sensor_config {
   struct sensor_t sensors[SENSORS_COUNT];
 };
 
-extern struct config config;
+#define CONFIG_VERSION "0005"
+
+#define VERSION_CONFIG_OFFSET (0)
+#define VERSION_CONFIG_SIZE (4)
+
+#define STATE_CONFIG_OFFSET (VERSION_CONFIG_OFFSET + VERSION_CONFIG_SIZE)
+#define STATE_CONFIG_SIZE (sizeof(enum alarm_state))
+
+#define PHONE_CONFIG_OFFSET (STATE_CONFIG_OFFSET + STATE_CONFIG_SIZE)
+#define PHONE_CONFIG_SIZE (sizeof(struct phone_config))
+
+#define REMOTE_CONFIG_OFFSET (PHONE_CONFIG_OFFSET + PHONE_CONFIG_SIZE)
+#define REMOTE_CONFIG_SIZE (sizeof(struct remote_config))
+
+#define SENSOR_CONFIG_OFFSET (REMOTE_CONFIG_OFFSET + REMOTE_CONFIG_SIZE)
+#define SENSOR_CONFIG_SIZE (sizeof(struct sensor_config))
+
 
 #endif

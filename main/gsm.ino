@@ -24,103 +24,103 @@ struct gsm_action {
   };
 };
 
-extern const struct fsm_step_t gsmstep_set_full_fonctionnality;
-extern const struct fsm_step_t gsmstep_check_sim;
-extern const struct fsm_step_t gsmstep_set_message_text_mode;
-extern const struct fsm_step_t gsmstep_check_network;
-extern const struct fsm_step_t gsmstep_idle;
-extern const struct fsm_step_t gsmstep_sms_begin;
-extern const struct fsm_step_t gsmstep_sms_data;
+extern const struct fsm_step_t PROGMEM gsmstep_set_full_fonctionnality;
+extern const struct fsm_step_t PROGMEM gsmstep_check_sim;
+extern const struct fsm_step_t PROGMEM gsmstep_set_message_text_mode;
+extern const struct fsm_step_t PROGMEM gsmstep_check_network;
+extern const struct fsm_step_t PROGMEM gsmstep_idle;
+extern const struct fsm_step_t PROGMEM gsmstep_sms_begin;
+extern const struct fsm_step_t PROGMEM gsmstep_sms_data;
 
-const struct fsm_event_t step_check_power_evt[] = {
+const struct fsm_event_t PROGMEM step_check_power_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_set_full_fonctionnality),
   EVT_CALL(EVT_GSM_FAILURE, &gsmstep_check_power_on_failure, NULL),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_check_power = {
+const struct fsm_step_t PROGMEM gsmstep_check_power = {
   .on_enter = AT_disable_echo,
   .on_run = NULL,
   .events = step_check_power_evt,
 };
 
-const struct fsm_event_t step_set_full_fonctionnality_evt[] = {
+const struct fsm_event_t PROGMEM step_set_full_fonctionnality_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_check_sim),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_set_full_fonctionnality),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_set_full_fonctionnality = {
+const struct fsm_step_t PROGMEM gsmstep_set_full_fonctionnality = {
   .on_enter = AT_set_full_fonctionnality,
   .on_run = NULL,
   .events = step_set_full_fonctionnality_evt,
 };
 
-const struct fsm_event_t step_check_sim_evt[] = {
+const struct fsm_event_t PROGMEM step_check_sim_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_check_network),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_check_sim),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_check_sim = {
+const struct fsm_step_t PROGMEM gsmstep_check_sim = {
   .on_enter = AT_check_sim,
   .on_run = NULL,
   .events = step_check_sim_evt,
 };
 
-const struct fsm_event_t step_check_network_evt[] = {
+const struct fsm_event_t PROGMEM step_check_network_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_set_message_text_mode),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_check_network),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_check_network = {
+const struct fsm_step_t PROGMEM gsmstep_check_network = {
   .on_enter = AT_check_network,
   .on_run = NULL,
   .events = step_check_network_evt,
 };
 
-const struct fsm_event_t step_set_message_text_mode_evt[] = {
+const struct fsm_event_t PROGMEM step_set_message_text_mode_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_idle),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_set_message_text_mode),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_set_message_text_mode = {
+const struct fsm_step_t PROGMEM gsmstep_set_message_text_mode = {
   .on_enter = AT_set_message_text_mode,
   .on_run = NULL,
   .events = step_set_message_text_mode_evt,
 };
 
-const struct fsm_event_t step_idle_evt[] = {
+const struct fsm_event_t PROGMEM step_idle_evt[] = {
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_idle = {
+const struct fsm_step_t PROGMEM gsmstep_idle = {
   .on_enter = NULL,
   .on_run = gsmstep_idle_on_run,
   .events = step_idle_evt,
 };
 
-const struct fsm_event_t step_sms_begin_evt[] = {
+const struct fsm_event_t PROGMEM step_sms_begin_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_sms_data),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_idle),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_sms_begin = {
+const struct fsm_step_t PROGMEM gsmstep_sms_begin = {
   .on_enter = gsmstep_sms_begin_on_enter,
   .on_run = NULL,
   .events = step_sms_begin_evt,
 };
 
-const struct fsm_event_t step_sms_data_evt[] = {
+const struct fsm_event_t PROGMEM step_sms_data_evt[] = {
   EVT_GOTO(EVT_GSM_SUCCESS, &gsmstep_idle),
   EVT_GOTO(EVT_GSM_FAILURE, &gsmstep_idle),
   EVT_LAST()
 };
 
-const struct fsm_step_t gsmstep_sms_data = {
+const struct fsm_step_t PROGMEM gsmstep_sms_data = {
   .on_enter = gsmstep_sms_data_on_enter,
   .on_run = NULL,
   .events = step_sms_data_evt,
@@ -171,8 +171,10 @@ void gsm_setup()
 
 void send_sms_to_all()
 {
+  struct phone_config phone_config;
+  config_load_phone(&phone_config);
   for(int i=0; i<PHONE_NUMBERS_COUNT; i++) {
-    if(config.phone_numbers[i][0]!=0){
+    if(phone_config.numbers[i][0]!=0){
       struct gsm_action action;
       action.type = SMS;
       action.sms.number_id = i;

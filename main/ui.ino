@@ -8,9 +8,9 @@
 
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
-extern const struct fsm_step_t screen_passwd;
-extern const struct fsm_step_t screen_remote_scan;
-extern const struct fsm_step_t screen_remote_scan_found;
+extern const struct fsm_step_t PROGMEM screen_passwd;
+extern const struct fsm_step_t PROGMEM screen_remote_scan;
+extern const struct fsm_step_t PROGMEM screen_remote_scan_found;
 
 
 
@@ -45,55 +45,55 @@ const struct menu_item mi_remotes[] =
 struct menu menu_remotes = {REMOTE, mi_remotes, 0};
 
 
-const struct fsm_event_t screen_idle_evt[] = {
-  EVT_CALL(EVT_KBD, &screen_idle_on_kbd, NULL),
+const struct fsm_event_t PROGMEM screen_idle_evt[] = {
+  EVT_GOTO(EVT_KBD, &screen_passwd),
   EVT_LAST()
 };
 
-const struct fsm_step_t screen_idle = {
+const struct fsm_step_t PROGMEM screen_idle = {
   .on_enter = NULL,
   .on_run = screen_idle_run,
   .events = screen_idle_evt,
 };
 
-const struct fsm_event_t screen_passwd_evt[] = {
+const struct fsm_event_t PROGMEM screen_passwd_evt[] = {
   EVT_CALL(EVT_KBD_VALIDATE, &screen_passwd_on_validate, NULL),
   EVT_LAST()
 };
 
-const struct fsm_step_t screen_passwd = {
+const struct fsm_step_t PROGMEM screen_passwd = {
   .on_enter = NULL,
   .on_run = screen_passwd_run,
   .events = screen_passwd_evt,
 };
 
-const struct fsm_event_t screen_settings_evt[] = {
+const struct fsm_event_t PROGMEM screen_settings_evt[] = {
   MENU_EVENTS(&menu_remotes),
   EVT_LAST()
 };
 
-const struct fsm_step_t screen_settings = {
+const struct fsm_step_t PROGMEM screen_settings = {
   .on_enter = NULL,
   .on_run = screen_settings_run,
   .events = screen_settings_evt,
 };
 
-const struct fsm_event_t screen_remote_scan_evt[] = {
+const struct fsm_event_t PROGMEM screen_remote_scan_evt[] = {
   EVT_GOTO(EVT_FOUND_REMOTE, &screen_remote_scan_found),
   EVT_LAST()
 };
 
-const struct fsm_step_t screen_remote_scan = {
+const struct fsm_step_t PROGMEM screen_remote_scan = {
   .on_enter = screen_remote_scan_on_enter,
   .on_run = NULL,
   .events = screen_remote_scan_evt,
 };
 
-const struct fsm_event_t screen_remote_scan_found_evt[] = {
+const struct fsm_event_t PROGMEM screen_remote_scan_found_evt[] = {
   EVT_LAST()
 };
 
-const struct fsm_step_t screen_remote_scan_found = {
+const struct fsm_step_t PROGMEM screen_remote_scan_found = {
   .on_enter = screen_remote_scan_found_on_enter,
   .on_run = NULL,
   .events = screen_remote_scan_found_evt,
@@ -135,12 +135,6 @@ void screen_idle_run()
   }
   display_line_on_screen(2, F(""));
   display_line_on_screen(3, F(""));
-}
-
-struct fsm_step_t * screen_idle_on_kbd(struct fsm_step_t * current_step, void * arg)
-{
-  myPrintf("%s\n", __FUNCTION__);
-  return &screen_passwd;
 }
 
 void screen_passwd_run()

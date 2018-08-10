@@ -33,6 +33,9 @@ uint32_t rf_get_learned_id()
 
 bool rf_is_known_remote(uint32_t id)
 {
+  struct remote_config config;
+  config_load_remotes(&config);
+
   for(int i =0; i<REMOTES_COUNT; i++){
     if(config.remotes[i] != 0 && //check the key is not empty
       id == config.remotes[i]){
@@ -47,10 +50,13 @@ bool rf_save_learned_remote()
   if(rf_is_known_remote(learned_id)){
     return true;
   }
+
+  struct remote_config config;
+  config_load_remotes(&config);
   for(int i =0; i<REMOTES_COUNT; i++){
     if (config.remotes[i] == 0) {
       config.remotes[i] = learned_id;
-      config_save_remotes();
+      config_save_remotes(&config);
       return true;
     }
   }

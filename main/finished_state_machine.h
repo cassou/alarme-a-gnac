@@ -27,9 +27,9 @@ enum fsm_event {
 };
 
 enum event_type {
-  EVT_TYPE_CALL,
-  EVT_TYPE_GOTO,
-  EVT_TYPE_LAST,
+  EVT_TYPE_CALL = 0,
+  EVT_TYPE_GOTO = 1,
+  EVT_TYPE_LAST = 2,
 };
 
 #define EVT_GOTO(i,s)                                 \
